@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import Searchbar from './ImageGallery/Searchbar';
 import ImageGallery from './ImageGallery/ImageGallery';
 import Modal from './ImageGallery/Modal';
@@ -6,93 +6,81 @@ import Button from './ImageGallery/Button';
 
 import './style.css';
 
-class App extends React.Component {
-  state = {
-    largeImgSrc: '',
-    input: '',
-    img: [],
-    page: 1,
-    pageLimit: 12,
-    status: 'idle',
-    error: null,
+export default function App() {
+  const [largeImageSrc, setLargeImgSrc] = useState('');
+  const [input, setInput] = useState('');
+  const [img, setImg] = useState([]);
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState('idle');
+  const [error, setError] = useState(null);
+
+  const handleFormSubmit = query => {
+    setInput(query);
+    setImg([]);
+    setPage(1);
   };
 
-  componentDidUpdate(_, prevState) {
-    if (
-      prevState.page === this.state.page &&
-      prevState.input === this.state.input
-    ) {
+  const onImgClick = largeImageURL => {
+    setLargeImgSrc(largeImageURL);
+  };
+
+  const loadMore = () => {
+    setPage(state => state + 1);
+  };
+
+  const toggleImg = () => {
+    setLargeImgSrc('');
+  };
+
+  useEffect(() => {
+    if (!input) {
       return;
     }
+    setStatus('pending');
 
-    const nextName = this.state.input;
-    const { page, pageLimit } = this.state;
-
-    this.setState(() => {
-      return { status: 'pending' };
-    });
     fetch(
-      `https://pixabay.com/api/?key=30720902-e9bde465b51dd4db5e7191c0a&q=${nextName}&page=${page}&image_type=photo&orientation=horizontal&per_page=${pageLimit}`
+      `https://pixabay.com/api/?key=30720902-e9bde465b51dd4db5e7191c0a&q=${input}&page=${page}&image_type=photo&orientation=horizontal&per_page=12`
     )
       .then(response => {
         if (response.ok) {
           return response.json();
         }
         return Promise.reject(
-          new Error(`Oops... we don't know what is this ${nextName}.`)
+          new Error(`Oops... we don't know what is this ${input}.`)
         );
       })
       .then(imgList => {
-        this.setState(prevState => {
-          return {
-            img: [...prevState.img, ...imgList.hits],
-            status: 'resolved',
-          };
-        });
+        setImg([...img, ...imgList.hits]);
+
+        setStatus('resolved');
       })
-      .catch(error =>
-        this.setState(() => {
-          return { error, status: 'rejected' };
-        })
-      );
-  }
+      .catch(error => {
+        setError(error);
+        setStatus('rejected');
+      });
+  }, [input, page]);
 
-  handleFormSubmit = input => {
-    this.setState({ input, img: [], page: 1 });
-  };
-
-  onImgClick = largeImageURL => {
-    this.setState({ largeImgSrc: largeImageURL });
-  };
-
-  loadMore = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
-  };
-
-  toggleImg = () => {
-    this.setState({ largeImgSrc: '' });
-  };
-
-  render() {
-    const { largeImgSrc, img, error, status } = this.state;
-    return (
-      <div className="App">
-        <Searchbar onSubmit={this.handleFormSubmit} />
-        <ImageGallery
-          imgs={img}
-          error={error}
-          status={status}
-          onToggle={this.onImgClick}
-        ></ImageGallery>
-        {img.length > 0 && <Button onClick={this.loadMore} />}
-        {largeImgSrc && (
-          <Modal onClose={this.toggleImg}>
-            <img src={largeImgSrc} alt={this.nextName} />
-          </Modal>
-        )}
-      </div>
-    );
-  }
+  return (
+    <div className="App">
+      <Searchbar onSubmit={handleFormSubmit} />
+      <ImageGallery
+        imgs={img}
+        error={error}
+        status={status}
+        onToggle={onImgClick}
+      ></ImageGallery>
+      {img.length > 0 && <Button onClick={loadMore} />}
+      {largeImageSrc && (
+        <Modal onClose={toggleImg}>
+          <img src={largeImageSrc} alt={input} />
+        </Modal>
+      )}
+    </div>
+  );
 }
 
-export default App;
+// class Apps extends React.Component {
+//   componentDidUpdate(_, prevState) {
+//
+//   }
+// }
