@@ -50,7 +50,8 @@ export default function App() {
         );
       })
       .then(imgList => {
-        setImg([...img, ...imgList.hits]);
+        console.log([...imgList.hits]);
+        setImg(prevImg => [...prevImg, ...imgList.hits]);
 
         setStatus('resolved');
       })
